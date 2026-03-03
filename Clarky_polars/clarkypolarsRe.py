@@ -52,7 +52,7 @@ import matplotlib.pyplot as plt
 
 def clarkypolarsRe(aoa, re):
 
-    POLAR_DATA_FILE = 'clarkypolars.mat'
+    POLAR_DATA_FILE = 'Clarky_polars/clarkypolars.mat'
 
     # Load hard-coded polarData
     tmp = loadmat(POLAR_DATA_FILE)
