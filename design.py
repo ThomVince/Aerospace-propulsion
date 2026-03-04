@@ -92,11 +92,11 @@ while True:
         J1 = np.trapezoid(J1_prime, xi_)
         J2 = np.trapezoid(J2_prime, xi_)
         Pc = J1*zeta_new + J2*zeta_new**2
+        eta = Tc / Pc
+        sigma = (B*c_)/(2*np.pi*xi_*R)
         break
     
     zeta = zeta_new
-
-print(cl_)
 
 plt.figure(figsize=(10, 6))
 plt.plot(xi_, np.degrees(beta_))
