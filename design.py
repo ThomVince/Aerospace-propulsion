@@ -33,22 +33,24 @@ lambd = V/(Omega*R) # speed ratio [-]
 zeta = 0.5 # initial guess for the displacement velocity ratio
 
 phi_ = np.zeros(N)   # flow angle at each blade section [rad]
-xi = np.linspace(xi0, 1, N) # nondimensional blade section radii [-]
+xi_ = np.linspace(xi0, 1, N) # nondimensional blade section radii [-]
 
-F_, phi_ = F_phi(xi, zeta, lambd, B)
+F_, phi_ = F_phi(xi_, zeta, lambd, B)
 
 cl_ = np.zeros(N) # lift coefficient at each blade section [-]
 epsilon_ = np.zeros(N) # drag-to-lift ratio at each blade section [-]
 alpha_ = np.zeros(N) # angle of attack at each blade section [rad]
 Wc_ = np.zeros(N) # relative velocity at each blade section [m/s]
 
-x = Omega * xi * R / V
+x = Omega * xi_ * R / V
+
+G_ = np.array([F_[i] * x[i] * np.cos(phi_[i]) * np.sin(phi_[i]) for i in range(N)])
+
+cl = 1.0 # initial guess for the lift coefficient of the first section
 
 for i in range(N):
-    G = F_[i] * x[i] * np.cos(phi_[i]) * np.sin(phi_[i])
-    cl = 0.918 # initial guess for the lift coefficient
     for j in range(10):
-        Wc, Re = Wc_Re(lambd, cl, G, V, R, zeta, B, nu)
+        Wc, Re = Wc_Re(lambd, cl, G_[i], V, R, zeta, B, nu)
 
         epsilon, alpha, cl_opt = epsilon_alpha(Re)
 
@@ -72,3 +74,5 @@ for i in range(N):
     a_[i], a_prime_[i], W_[i] = a_a_prime_W(zeta, phi_[i], epsilon_[i], x[i], V)
     c_[i] = Wc_[i] / W_[i]
     beta_[i] =  alpha_[i] + phi_[i]
+
+    I1_prime, I2_prime, J1_prime, J2_prime = I_prime_J_prime(xi_[i], G_[i], phi_[i], epsilon_[i], lambd)

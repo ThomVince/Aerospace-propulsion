@@ -40,3 +40,10 @@ def a_a_prime_W(zeta, phi, epsilon, x, V):
     a_prime = (zeta/2 * x) * np.cos(phi) * np.sin(phi) * (1 + epsilon / np.tan(phi))
     W = V * (1 + a) / np.sin(phi)
     return a, a_prime, W
+
+def I_prime_J_prime(xi, G, phi, epsilon, lambd):
+    I1_prime = 4 * xi * G * (1 - epsilon*np.tan(phi))
+    I2_prime = lambd * (I1_prime / (2*xi)) * (1 + epsilon/np.tan(phi)) * np.sin(phi) * np.cos(phi)
+    J1_prime = 4*xi*G*(1 + epsilon/np.tan(phi))
+    J2_prime = (J1_prime/2) * (1 - epsilon*np.tan(phi)) * np.cos(phi)**2
+    return I1_prime, I2_prime, J1_prime, J2_prime
