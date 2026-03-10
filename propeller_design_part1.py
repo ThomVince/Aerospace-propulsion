@@ -31,7 +31,7 @@ xis = np.linspace(hub_diam,tip_diam,nb_sections)/(2*R)
 chords = np.zeros_like(xis)
 twists = np.zeros_like(xis)
 
-zetas = [-1,0]
+zetas = [-1,zeta_init]
 
 Pc = 0
 
@@ -51,14 +51,17 @@ while abs((zetas[1]-zetas[0])) > 0.001*abs(zetas[0]):
     for i in range(nb_sections):
         
         xi = xis[i]
+        r = xi*R
+        x = Omega*r/v_freestream
         
         #2
         F = prandtl_mom_loss_factor(xi,psi_t,nb_blades)
         psi = flow_angle(zeta,xi,lmbda)
         
         #3, 4, 5
-        G = circulation_fct(F,psi,xi,lmbda)
+        G = circulation_fct(F,psi,x)
         aoa, eps, Re = aoa_eps_Re_max_lift_to_drag(lmbda,G,v_freestream,zeta,R,nb_blades,1)
+        print(eps)
         W_times_c = Wc(lmbda,G,v_freestream,zeta,R,nb_blades,aoa,Re)
         
         #6
@@ -73,9 +76,13 @@ while abs((zetas[1]-zetas[0])) > 0.001*abs(zetas[0]):
         I1_dervs[i], I2_dervs[i],J1_dervs[i],J2_dervs[i] = derivatives(xi,G,eps,psi,lmbda)
         
     I1 = np.trapezoid(I1_dervs,xis)
+
     I2 = np.trapezoid(I2_dervs,xis)
+
     J1 = np.trapezoid(J1_dervs,xis)
+  
     J2 = np.trapezoid(J2_dervs,xis)
+  
 
     zetas[0] = zeta
     zetas[1] = I1/(2*I2) - ((I1/(2*I2))**2 - Tc/I2)**(1/2)
@@ -89,5 +96,10 @@ plt.grid()
 plt.xlabel("Non-dimensionnal blade section radius [-]")
 plt.ylabel("Chord length [m]")
 plt.show()
-    
+
+plt.plot(xis,twists*180/np.pi)
+plt.grid()
+plt.xlabel("Non-dimensionnal blade section radius [-]")
+plt.ylabel("Twist [°]")
+plt.show()
     

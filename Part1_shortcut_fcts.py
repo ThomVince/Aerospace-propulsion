@@ -14,8 +14,8 @@ def prandtl_mom_loss_factor(xi, psi_tip, nb_blades):
 def flow_angle(zeta, xi, lmbda):
     return lmbda*(1+zeta/2)/xi
 
-def circulation_fct(F,psi,xi,lmbda):
-    return F*np.cos(psi)*np.sin(psi)*xi/lmbda
+def circulation_fct(F,psi, x):
+    return F*np.cos(psi)*np.sin(psi)*x
 
 def Wc(lmbda,G,V,zeta,R,B,aoa,Re):
     return 4*np.pi*lmbda*G*V*R*zeta/(B*clarkypolarsRe(aoa,Re)[0])
@@ -23,10 +23,9 @@ def Wc(lmbda,G,V,zeta,R,B,aoa,Re):
 def aoa_min_eps(Re):
     aoas = np.linspace(-np.pi,np.pi,1000)
     cl_tab, cd_tab = clarkypolarsRe(aoas,Re)
-    inv_epsilons = cl_tab/cd_tab
-    aoa = aoas[np.argmax(inv_epsilons)]
-    eps = 1/max(inv_epsilons)
-    return aoa, eps
+    epsilons = (cd_tab/cl_tab)[cl_tab > 0.005]
+    aoa = aoas[cl_tab>0.005][np.argmin(epsilons)]
+    return aoa, min(epsilons)
 
 def aoa_eps_Re_max_lift_to_drag(lmbda,G,V,zeta,R,B,tolerance_Re):
     
