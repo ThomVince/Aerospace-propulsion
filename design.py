@@ -140,5 +140,4 @@ if __name__ == "__main__":
     plot_results(xi_, 100*c_, 'Chord [cm]')
     plot_results(xi_, beta_*180/np.pi, 'Pitch angle [deg]')
 
-
     plt.show()
