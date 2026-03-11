@@ -206,11 +206,10 @@ if __name__ == "__main__":
 
     dT, dC = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
         
-    T = np.trapezoid(dT,xi_)
-    C = np.trapezoid(dC,xi_)
+    T = np.sum(dT[0:len(dT)-2] + dT[1:len(dT)-1])/2
     
     print(T)
-    print(C)
+
 
 
         
