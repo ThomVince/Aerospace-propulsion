@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from design_func import F_phi, Wc_Re, epsilon_alpha, a_a_prime_W, I_prime_J_prime
+from design_func import *
+
+#from design_func import F_phi, Wc_Re, epsilon_alpha, a_a_prime_W, I_prime_J_prime
 
 # ===========================================
 # ============ design parameters ============
@@ -122,6 +124,57 @@ def design_loop(xi_, zeta_init, lambd, Tc, B, V, R, nu, max_iter=100):
         
     raise RuntimeError(f"Design loop did not converge after {max_iter} iterations.")
 
+def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
+    
+    v_a3 = v_a3_init
+    v_u2p = v_u2p_init
+    
+    dT = np.zeros_like(xi_)
+    dC = np.zeros_like(xi_)
+    
+    diff_iter_1 = 1
+    diff_iter_2 = 1
+    
+    iter_nb = 0
+    
+    while diff_iter_1 > 0.001 or diff_iter_2 > 0.001:
+        
+        iter_nb += 1
+        if iter_nb == max_iter:
+            raise RuntimeError(f"Design loop did not converge after {max_iter} iterations.")
+        
+        v_a2 = (V + v_a3)/2
+        w_a2 = v_a2
+        v_u2 = v_u2p/2
+        w_u2 = v_u2 - Omega * xi_ * R
+        
+        dm_dot = 2 * np.pi * xi_ * R * R/N * rho * v_a2
+        
+        w_2 = (w_a2**2 + w_u2**2)**(1/2)
+        phi_2 = np.arctan(w_u2/w_a2)
+        
+        aoa = beta_ - (np.pi/2 + phi_2)
+        Re = rho * w_2 * c_ / nu
+        
+        dL, dD = partial_lift_drag(aoa,Re,c_,rho,w_2,R/N)
+        
+        cos_phi = w_a2/w_2
+        sin_phi = w_u2/w_2
+        
+        dT = -B * (dL * sin_phi + dD * cos_phi)
+        dC = xi_ * R * B * (dL * cos_phi - dD * sin_phi)
+        
+        v_a3_old = v_a3
+        v_u2p_old = v_u2p
+        
+        v_a3 = V + dT/dm_dot
+        v_u2p = dC/(dm_dot*xi_*R)
+        
+        diff_iter_1 = max(v_a3 - v_a3_old)
+        diff_iter_2 = max(v_u2p - v_u2p_old)
+        
+    return dT, dC
+
 def plot_results(xi_, y, ylabel):
     plt.figure(figsize=(10, 6))
     plt.plot(xi_, y)
@@ -131,6 +184,11 @@ def plot_results(xi_, y, ylabel):
     plt.grid()
 
 if __name__ == "__main__":
+    
+# ===========================================
+# ================ Part 1 ===================
+# ===========================================
+    
     xi_ = np.linspace(xi0, 1, N)
     zeta_init = 0.0
     zeta, cl_, epsilon_, alpha_, Wc_, a_, a_prime_, W_, c_, beta_, I1, I2, J1, J2, Pc, eta, sigma = design_loop(xi_, zeta_init, lambd, Tc, B, V, R, nu)
@@ -140,5 +198,19 @@ if __name__ == "__main__":
     plot_results(xi_, 100*c_, 'Chord [cm]')
     plot_results(xi_, beta_*180/np.pi, 'Pitch angle [deg]')
 
-
     plt.show()
+    
+# ===========================================
+# ================ Part 2 ===================
+# ===========================================
+
+    dT, dC = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
+        
+    T = np.trapezoid(dT,xi_)
+    C = np.trapezoid(dC,xi_)
+    
+    print(T)
+    print(C)
+
+
+        

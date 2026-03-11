@@ -68,4 +68,3 @@ def clarkypolarsRe(aoa, re):
     cd = cd_interpolator((aoa, re))
 
     return cl, cd
-

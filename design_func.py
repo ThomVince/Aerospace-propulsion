@@ -1,5 +1,5 @@
 import numpy as np
-from Clarky_polars.clarkypolarsRe import clarkypolarsRe
+from clarkypolarsRe import clarkypolarsRe
 
 # ===========================================
 # =============== functions =================
@@ -113,3 +113,10 @@ def I_prime_J_prime(xi, G, phi, epsilon, lambd):
     J1_prime = 4*xi*G*(1 + epsilon/np.tan(phi))
     J2_prime = (J1_prime/2) * (1 - epsilon*np.tan(phi)) * np.cos(phi)**2
     return I1_prime, I2_prime, J1_prime, J2_prime
+
+def partial_lift_drag(AoA, Re, chord, rho, w, dr):
+    
+    cl, cd = clarkypolarsRe(AoA, Re)
+    dL = cl * chord * rho * w**2 * dr / 2
+    dD = cd * chord * rho * w**2 * dr / 2
+    return dL, dD
