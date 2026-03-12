@@ -20,7 +20,7 @@ n = 2100/60 # rotational speed [rev/s]
 
 nu = 1.5e-5 # kinematic viscosity [m^2/s]
 
-N = 30      # number of blade sections
+N = 2000    # number of blade sections
 
 # ===========================================
 # =========== derived parameters ============
@@ -124,10 +124,29 @@ def design_loop(xi_, zeta_init, lambd, Tc, B, V, R, nu, max_iter=100):
         
     raise RuntimeError(f"Design loop did not converge after {max_iter} iterations.")
 
+
 def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
-    
+    """
+    Iterative implementation of the BEMT algorithm to find the thrust and torque distribution.
+
+    Inputs:
+        xi_        : nondimensional blade section radii [-]
+        beta_      : twist angle of the wing section [rad]
+        B          : number of propeller blades [-]
+        V          : freestream velocity [m/s]
+        R          : tip radius [m]
+        nu         : kinematic viscosity [m^2/s]
+        v_a3_init  : initial guess for the axial downstream velocity [m/s]
+        v_u2p_init : initial guess for the radial velocity immediatly downstream of the blades [m/s]
+        max_iter   : maximum number of iterations [-]
+
+    Outputs:
+        dT         : Thrust distribution on the wing
+        dC         : Torque distribution on the wing
+    """
     v_a3 = v_a3_init
     v_u2p = v_u2p_init
+    dr = R*(1-xi_[0])/N
     
     dT = np.zeros_like(xi_)
     dC = np.zeros_like(xi_)
@@ -148,7 +167,7 @@ def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
         v_u2 = v_u2p/2
         w_u2 = v_u2 - Omega * xi_ * R
         
-        dm_dot = 2 * np.pi * xi_ * R * R/N * rho * v_a2
+        dm_dot = 2 * np.pi * xi_ * R * dr * rho * v_a2
         
         w_2 = (w_a2**2 + w_u2**2)**(1/2)
         phi_2 = np.arctan(w_u2/w_a2)
@@ -156,7 +175,7 @@ def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
         aoa = beta_ - (np.pi/2 + phi_2)
         Re = rho * w_2 * c_ / nu
         
-        dL, dD = partial_lift_drag(aoa,Re,c_,rho,w_2,R/N)
+        dL, dD = partial_lift_drag(aoa,Re,c_,rho,w_2,dr)
         
         cos_phi = w_a2/w_2
         sin_phi = w_u2/w_2
@@ -206,7 +225,7 @@ if __name__ == "__main__":
 
     dT, dC = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
         
-    T = np.sum(dT[0:len(dT)-2] + dT[1:len(dT)-1])/2
+    T = np.trapezoid(dT)
     
     print(T)
 
