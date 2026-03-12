@@ -22,7 +22,7 @@ def F_phi(xi, zeta, lambd, B):
     phi_t = np.arctan(lambd * (1 + zeta/2)) # tip flow angle [rad]
     f = (B/2)*(1-xi)/np.sin(phi_t)
     F = (2/np.pi)*np.arccos(np.exp(-f))
-    phi =  np.arctan(np.tan(phi_t)/xi)
+    phi =  np.arctan2(np.tan(phi_t),xi)
     return F, phi
 
 def Wc_Re(lambd, cl_fixed, G, V, R, zeta, B, nu):
@@ -59,17 +59,24 @@ def epsilon_alpha(Re):
         alpha   : corresponding angle of attack [rad]
         cl_opt  : corresponding lift coefficient [-]
     """
-    aoa_ = np.linspace(-np.pi/2, np.pi/2, 1000) # angle of attack range [rad]
-    cl_, cd_ = clarkypolarsRe(aoa_, Re)
-
-    mask = cl_ > 0.0
-    epsilon_ = cd_[mask] / cl_[mask]
-
-    idx = np.argmin(epsilon_)
-
-    epsilon = epsilon_[idx]
-    alpha = aoa_[mask][idx]
-    cl_opt = cl_[mask][idx]
+    aoa_ = np.linspace(-np.pi/2 , np.pi/2, 180)
+    cl_, cd_ = clarkypolarsRe(aoa_,Re)
+    
+    inv_epsilon_ = cl_ / cd_
+    
+    idx = np.argmax(inv_epsilon_)
+    
+    aoa_ = np.linspace(aoa_[idx]-np.pi/180,aoa_[idx]+np.pi/180,120)
+    
+    cl_, cd_ = clarkypolarsRe(aoa_,Re)
+    
+    inv_epsilon_ = cl_ / cd_
+    
+    idx = np.argmax(inv_epsilon_)
+    
+    epsilon = 1/inv_epsilon_[idx]
+    alpha = aoa_[idx]
+    cl_opt = cl_[idx]
     
     return epsilon, alpha, cl_opt
 
@@ -112,6 +119,7 @@ def I_prime_J_prime(xi, G, phi, epsilon, lambd):
     I2_prime = lambd * (I1_prime / (2*xi)) * (1 + epsilon/np.tan(phi)) * np.sin(phi) * np.cos(phi)
     J1_prime = 4*xi*G*(1 + epsilon/np.tan(phi))
     J2_prime = (J1_prime/2) * (1 - epsilon*np.tan(phi)) * np.cos(phi)**2
+    
     return I1_prime, I2_prime, J1_prime, J2_prime
 
 def partial_lift_drag(AoA, Re, chord, rho, w, dr):

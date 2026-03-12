@@ -20,7 +20,7 @@ n = 2100/60 # rotational speed [rev/s]
 
 nu = 1.5e-5 # kinematic viscosity [m^2/s]
 
-N = 2000    # number of blade sections
+N = 200    # number of blade sections
 
 # ===========================================
 # =========== derived parameters ============
@@ -143,6 +143,7 @@ def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
     Outputs:
         dT         : Thrust distribution on the wing
         dC         : Torque distribution on the wing
+        dP         : Power required to move the motor
     """
     v_a3 = v_a3_init
     v_u2p = v_u2p_init
@@ -170,7 +171,7 @@ def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
         dm_dot = 2 * np.pi * xi_ * R * dr * rho * v_a2
         
         w_2 = (w_a2**2 + w_u2**2)**(1/2)
-        phi_2 = np.arctan(w_u2/w_a2)
+        phi_2 = np.arctan2(w_u2,w_a2)
         
         aoa = beta_ - (np.pi/2 + phi_2)
         Re = rho * w_2 * c_ / nu
@@ -192,15 +193,35 @@ def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
         diff_iter_1 = max(v_a3 - v_a3_old)
         diff_iter_2 = max(v_u2p - v_u2p_old)
         
-    return dT, dC
+    dP = dm_dot/2 * (v_a3**2 - V**2)
+        
+    return dT, dC, dP
 
 def plot_results(xi_, y, ylabel):
+    
     plt.figure(figsize=(10, 6))
     plt.plot(xi_, y)
     plt.xlabel(r'Nondimensional blade section radius $\xi$ [-]', fontsize=15)
     plt.ylabel(ylabel, fontsize=15)
     plt.tick_params(axis='both', which='major', labelsize=15)
     plt.grid()
+    
+def compare_results(xi_,y_,ylabel , labels):
+    
+    plt.figure(figsize=(10, 6))
+    
+    if len(y_) != len(labels):
+        raise RuntimeError("The number of labels is not the same as the number of different results to compare.")
+    
+    for i in range(len(labels)):
+        plt.plot(xi_,y_[i],labels[i])
+        
+    plt.xlabel(r'Nondimensional blade section radius $\xi$ [-]', fontsize=15)
+    plt.ylabel(ylabel, fontsize=15)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    plt.legend()
+    plt.grid()
+
 
 if __name__ == "__main__":
     
@@ -214,7 +235,7 @@ if __name__ == "__main__":
 
     print(f"Displacement velocity ratio zeta : {zeta:.4f}")
 
-    plot_results(xi_, 100*c_, 'Chord [cm]')
+    plot_results(xi_, c_*100, 'Chord [cm]')
     plot_results(xi_, beta_*180/np.pi, 'Pitch angle [deg]')
 
     plt.show()
@@ -223,12 +244,71 @@ if __name__ == "__main__":
 # ================ Part 2 ===================
 # ===========================================
 
-    dT, dC = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
+    dT_0, dC_0, dP_0 = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
         
-    T = np.trapezoid(dT)
+    T_0 = np.trapezoid(dT_0)
+    P_0 = np.trapezoid(dP_0)
+    eta_P_0 = T_0*V/P_0
     
-    print(T)
-
-
-
+    eta_P_0_ = (dT_0[abs(dP_0) >= 0.0001]*V/dP_0[abs(dP_0) >= 0.0001])
+    
+    print(f"The thrust produced is {T_0:.4f} N")
+    print(f"The power consumed is {P_0:.4f} W")
+    print(f"The propulsive efficiency is {eta_P_0:.4f}")
+    
+    plot_results(xi_,dT_0,"Thrust distribution [N]")
+    plot_results(xi_,dP_0,"Power distribution [W]")
+    plot_results(xi_[abs(dP_0) >= 0.0001],eta_P_0_,"Propulsive efficiency [-]")
+    
+    plt.show()
+    
+    # Pitch angle +10°
+    
+    dT_10, dC_2, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V,R,nu,c_,V,0)
         
+    T_10 = np.trapezoid(dT_10)
+    P_10 = np.trapezoid(dP_10)
+    eta_P_10 = T_10*V/P_10
+    
+    eta_P_10_ = (dT_10[abs(dP_10) >= 0.0001]*V/dP_10[abs(dP_10) >= 0.0001])
+    
+    print(f"The thrust produced with a collective pitch of +10° is {T_10:.4f} N")
+    print(f"The power consumed with a collective pitch of +10° is {P_10:.4f} W")
+    print(f"The propulsive efficiency with a collective pitch of +10° is {eta_P_10:.4f}")
+    
+    plot_results(xi_,dT_10,"Thrust distribution [N]")
+    plot_results(xi_,dP_10,"Power distribution [W]")
+    plot_results(xi_[abs(dP_10) >= 0.0001],eta_P_10_,"Propulsive efficiency [-]")
+    
+    plt.show()
+
+    # Comparison of results :
+    
+    labels = ["Base","Collective pitch of 10°"]
+    
+    compare_results(xi_,[dT_0,dT_10],"Thrust [N]",labels)
+    compare_results(xi_,[dP_0,dP_10],"Power [N]",labels)
+    compare_results(xi_[0:N-1],[eta_P_0_,eta_P_10_],"Efficiency [-]",labels)
+    
+    plt.show()
+    
+# ===========================================
+# ================ Part 3 ===================
+# ===========================================
+    
+    dT_20, dC_20, dP_20 = bemt(xi_,beta_ + 20 / 180 * np.pi ,B,V,R,nu,c_,V,0)
+    dT_30, dC_30, dP_30 = bemt(xi_,beta_ + 30 / 180 * np.pi ,B,V,R,nu,c_,V,0)
+    
+    D = 2*R
+    
+    Tc_0_ = 4*dT_0/(D**4 * rho * n**2)
+    Tc_10_ = 4*dT_10/(D**4 * rho * n**2)
+    Tc_20_ = 4*dT_20/(D**4 * rho * n**2)
+    Tc_30_ = 4*dT_30/(D**4 * rho * n**2)
+    
+    Pc_0_ = 4*dT_0/(D**5 * rho * n**3)
+    Pc_10_ = 4*dP_10/(D**5 * rho * n**3)
+    Pc_20_ = 4*dP_20/(D**5 * rho * n**3)
+    Pc_30_ = 4*dP_30/(D**5 * rho * n**3)
+    
+    
