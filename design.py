@@ -214,7 +214,7 @@ def compare_results(xi_,y_,ylabel , labels):
         raise RuntimeError("The number of labels is not the same as the number of different results to compare.")
     
     for i in range(len(labels)):
-        plt.plot(xi_,y_[i],labels[i])
+        plt.plot(xi_,y_[i],label=labels[i])
         
     plt.xlabel(r'Nondimensional blade section radius $\xi$ [-]', fontsize=15)
     plt.ylabel(ylabel, fontsize=15)
@@ -246,6 +246,7 @@ if __name__ == "__main__":
 
     dT_0, dC_0, dP_0 = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
         
+    #dP_0 = dC_0*Omega
     T_0 = np.trapezoid(dT_0)
     P_0 = np.trapezoid(dP_0)
     eta_P_0 = T_0*V/P_0
@@ -264,8 +265,8 @@ if __name__ == "__main__":
     
     # Pitch angle +10°
     
-    dT_10, dC_2, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V,R,nu,c_,V,0)
-        
+    dT_10, dC_10, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V,R,nu,c_,V,0)
+    #dP_10 = dC_10*Omega
     T_10 = np.trapezoid(dT_10)
     P_10 = np.trapezoid(dP_10)
     eta_P_10 = T_10*V/P_10
@@ -284,11 +285,9 @@ if __name__ == "__main__":
 
     # Comparison of results :
     
-    labels = ["Base","Collective pitch of 10°"]
-    
-    compare_results(xi_,[dT_0,dT_10],"Thrust [N]",labels)
-    compare_results(xi_,[dP_0,dP_10],"Power [N]",labels)
-    compare_results(xi_[0:N-1],[eta_P_0_,eta_P_10_],"Efficiency [-]",labels)
+    compare_results(xi_,[dT_0,dT_10],"Thrust [N]",["Base","Collective pitch of 10°"])
+    compare_results(xi_,[dP_0,dP_10],"Power [N]",["Base","Collective pitch of 10°"])
+    compare_results(xi_[0:N-1],[eta_P_0_,eta_P_10_],"Efficiency [-]",["Base","Collective pitch of 10°"])
     
     plt.show()
     
