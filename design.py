@@ -1,3 +1,4 @@
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -20,7 +21,7 @@ n = 2100/60 # rotational speed [rev/s]
 
 nu = 1.5e-5 # kinematic viscosity [m^2/s]
 
-N = 200    # number of blade sections
+N = 100    # number of blade sections
 
 # ===========================================
 # =========== derived parameters ============
@@ -125,7 +126,7 @@ def design_loop(xi_, zeta_init, lambd, Tc, B, V, R, nu, max_iter=100):
     raise RuntimeError(f"Design loop did not converge after {max_iter} iterations.")
 
 
-def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
+def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init , max_iter=100):
     """
     Iterative implementation of the BEMT algorithm to find the thrust and torque distribution.
 
@@ -193,7 +194,7 @@ def bemt(xi_, beta_, B, V, R, nu, c_, v_a3_init, v_u2p_init, max_iter=100):
         diff_iter_1 = max(v_a3 - v_a3_old)
         diff_iter_2 = max(v_u2p - v_u2p_old)
         
-    dP = dm_dot/2 * (v_a3**2 - V**2)
+    dP = dC*Omega
         
     return dT, dC, dP
 
@@ -206,7 +207,7 @@ def plot_results(xi_, y, ylabel):
     plt.tick_params(axis='both', which='major', labelsize=15)
     plt.grid()
     
-def compare_results(xi_,y_,ylabel , labels):
+def compare_results(xi_,y_,ylabel , labels,xlabel=r'Nondimensional blade section radius $\xi$ [-]'):
     
     plt.figure(figsize=(10, 6))
     
@@ -216,13 +217,28 @@ def compare_results(xi_,y_,ylabel , labels):
     for i in range(len(labels)):
         plt.plot(xi_,y_[i],label=labels[i])
         
-    plt.xlabel(r'Nondimensional blade section radius $\xi$ [-]', fontsize=15)
+    plt.xlabel(xlabel, fontsize=15)
     plt.ylabel(ylabel, fontsize=15)
     plt.tick_params(axis='both', which='major', labelsize=15)
     plt.legend()
     plt.grid()
-
-
+    
+def plot_multiple(x_, y_, xlabel, ylabel,labels):
+    
+    plt.figure(figsize=(10, 6))
+    
+    if len(y_) != len(labels) or len(x_) != len(y_):
+        raise RuntimeError("The number of labels is not the same as the number of different results to compare.")
+    
+    for i in range(len(labels)):
+        plt.plot(x_[i],y_[i],label=labels[i])
+        
+    plt.xlabel(xlabel, fontsize=15)
+    plt.ylabel(ylabel, fontsize=15)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    plt.legend()
+    plt.grid()
+#%%
 if __name__ == "__main__":
     
 # ===========================================
@@ -237,14 +253,15 @@ if __name__ == "__main__":
 
     plot_results(xi_, c_*100, 'Chord [cm]')
     plot_results(xi_, beta_*180/np.pi, 'Pitch angle [deg]')
+    plot_results(xi_,alpha_*180/np.pi,'Angle of attack [deg]')
 
     plt.show()
-    
+#%%    
 # ===========================================
 # ================ Part 2 ===================
 # ===========================================
 
-    dT_0, dC_0, dP_0 = bemt(xi_,beta_,B,V,R,nu,c_,V,0)
+    dT_0, dC_0, dP_0 = bemt(xi_,beta_,B,V,Omega,R,nu,c_,V,0)
         
     #dP_0 = dC_0*Omega
     T_0 = np.trapezoid(dT_0)
@@ -265,7 +282,7 @@ if __name__ == "__main__":
     
     # Pitch angle +10°
     
-    dT_10, dC_10, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V,R,nu,c_,V,0)
+    dT_10, dC_10, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V,Omega,R,nu,c_,V,0)
     #dP_10 = dC_10*Omega
     T_10 = np.trapezoid(dT_10)
     P_10 = np.trapezoid(dP_10)
@@ -286,28 +303,136 @@ if __name__ == "__main__":
     # Comparison of results :
     
     compare_results(xi_,[dT_0,dT_10],"Thrust [N]",["Base","Collective pitch of 10°"])
-    compare_results(xi_,[dP_0,dP_10],"Power [N]",["Base","Collective pitch of 10°"])
+    compare_results(xi_,[dP_0,dP_10],"Power [W]",["Base","Collective pitch of 10°"])
     compare_results(xi_[0:N-1],[eta_P_0_,eta_P_10_],"Efficiency [-]",["Base","Collective pitch of 10°"])
     
     plt.show()
-    
+#%%
 # ===========================================
 # ================ Part 3 ===================
 # ===========================================
-    
-    dT_20, dC_20, dP_20 = bemt(xi_,beta_ + 20 / 180 * np.pi ,B,V,R,nu,c_,V,0)
-    dT_30, dC_30, dP_30 = bemt(xi_,beta_ + 30 / 180 * np.pi ,B,V,R,nu,c_,V,0)
-    
+
     D = 2*R
     
-    Tc_0_ = 4*dT_0/(D**4 * rho * n**2)
-    Tc_10_ = 4*dT_10/(D**4 * rho * n**2)
-    Tc_20_ = 4*dT_20/(D**4 * rho * n**2)
-    Tc_30_ = 4*dT_30/(D**4 * rho * n**2)
+    J = np.linspace(5e-3,5,1000)
     
-    Pc_0_ = 4*dT_0/(D**5 * rho * n**3)
-    Pc_10_ = 4*dP_10/(D**5 * rho * n**3)
-    Pc_20_ = 4*dP_20/(D**5 * rho * n**3)
-    Pc_30_ = 4*dP_30/(D**5 * rho * n**3)
+    CT_0_ = np.zeros(len(J))
+    CT_10_ = np.zeros(len(J))
+    CT_20_ = np.zeros(len(J))
+    CT_30_ = np.zeros(len(J))
+    
+    CP_0_ = np.zeros(len(J))
+    CP_10_ = np.zeros(len(J))
+    CP_20_ = np.zeros(len(J))
+    CP_30_ = np.zeros(len(J))
+    
+    eta_P_0_ = np.zeros(len(J))
+    eta_P_10_ = np.zeros(len(J))
+    eta_P_20_ = np.zeros(len(J))
+    eta_P_30_ = np.zeros(len(J))
+    
+
+    for i in range(len(J)):
+        V_inf = J[i]*n*D
+        
+        dT_0, dC_0, dP_0    = bemt(xi_,beta_                    ,B,V_inf,Omega,R,nu,c_,V_inf,0)
+        dT_10, dC_10, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V_inf,Omega,R,nu,c_,V_inf,0)
+        dT_20, dC_20, dP_20 = bemt(xi_,beta_ + 20 / 180 * np.pi ,B,V_inf,Omega,R,nu,c_,V_inf,0)
+        dT_30, dC_30, dP_30 = bemt(xi_,beta_ + 30 / 180 * np.pi ,B,V_inf,Omega,R,nu,c_,V_inf,0)
+        
+        T_0 = np.trapezoid(dT_0)
+        P_0 = np.trapezoid(dP_0)
+        CT_0 = 4*T_0/(D**4 * rho * n**2)
+        CP_0 = 4*P_0/(rho * n**3 * D**5)
+        CT_0_[i] = CT_0
+        CP_0_[i] = CP_0
+        eta_P_0_[i] = T_0 * V_inf / P_0
+        
+        T_10 = np.trapezoid(dT_10)
+        P_10 = np.trapezoid(dP_10)
+        CT_10 = 4*T_10/(D**4 * rho * n**2)
+        CP_10 = 4*P_10/(rho * n**3 * D**5)
+        CT_10_[i] = CT_10
+        CP_10_[i] = CP_10
+        eta_P_10_[i] = T_10 * V_inf / P_10
+        
+        T_20 = np.trapezoid(dT_20)
+        P_20 = np.trapezoid(dP_20)
+        CT_20 = 4*T_20/(D**4 * rho * n**2)
+        CP_20 = 4*P_20/(rho * n**3 * D**5)
+        CT_20_[i] = CT_20
+        CP_20_[i] = CP_20
+        eta_P_20_[i] = T_20 * V_inf / P_20
+        
+        T_30 = np.trapezoid(dT_30)
+        P_30 = np.trapezoid(dP_30)
+        CT_30 = 4*T_30/(D**4 * rho * n**2)
+        CP_30 = 4*P_30/(rho * n**3 * D**5)
+        CT_30_[i] = CT_30
+        CP_30_[i] = CP_30
+        eta_P_30_[i] = T_30 * V_inf / P_30
+    
+    idx_0 = np.argmin(eta_P_0_)
+    idx_10 = np.argmin(eta_P_10_)
+    idx_20 = np.argmin(eta_P_20_)
+    idx_30 = np.argmin(eta_P_30_)
+    
+    eta_P_0_ = eta_P_0_[0:idx_0]
+    cond_0 = eta_P_0_ > 0
+    eta_P_0_ = eta_P_0_[cond_0]
+    
+    eta_P_10_ = eta_P_10_[0:idx_10]
+    cond_10 = eta_P_10_ > 0
+    eta_P_10_ = eta_P_10_[cond_10]
+    
+    eta_P_20_ = eta_P_20_[0:idx_20]
+    cond_20 = eta_P_20_ > 0
+    eta_P_20_ = eta_P_20_[cond_20]
+    
+    eta_P_30_ = eta_P_30_[0:idx_30]
+    cond_30 = eta_P_30_ > 0
+    eta_P_30_ = eta_P_30_[cond_30]
+    
+    J_0 =   J[0:idx_0]
+    J_0 =   J_0[cond_0]
+    J_10 =  J[0:idx_10]
+    J_10 =  J_10[cond_10]
+    J_20 =  J[0:idx_20]
+    J_20 =  J_20[cond_20]
+    J_30 =  J[0:idx_30]
+    J_30 =  J_30[cond_30]
+    
+    CT_0_ = CT_0_[0:idx_0]
+    CT_0_ = CT_0_[cond_0]
+    CT_10_ = CT_10_[0:idx_10]
+    CT_10_ = CT_10_[cond_10]
+    CT_20_ = CT_20_[0:idx_20]
+    CT_20_ = CT_20_[cond_20]
+    CT_30_ = CT_30_[0:idx_30]
+    CT_30_ = CT_30_[cond_30]
+    
+    CP_0_ = CP_0_[0:idx_0]
+    CP_0_ = CP_0_[cond_0]
+    CP_10_ = CP_10_[0:idx_10]
+    CP_10_ = CP_10_[cond_10]
+    CP_20_ = CP_20_[0:idx_20]
+    CP_20_ = CP_20_[cond_20]
+    CP_30_ = CP_30_[0:idx_30]
+    CP_30_ = CP_30_[cond_30]
+    
+    xaxis = [J_0,J_10,J_20,J_30]
+
+    #xaxis = [J,J,J,J]
+    yaxis_T = [CT_0_,CT_10_,CT_20_,CT_30_]
+    yaxis_P = [CP_0_,CP_10_,CP_20_,CP_30_]
+    yaxis_eta = [eta_P_0_,eta_P_10_,eta_P_20_,eta_P_30_]
+    labels = ["Pitch = 0°","Pitch = 10°","Pitch = 20°","Pitch = 30°"]
+    
+    plot_multiple(xaxis,yaxis_T,"Advance ratio [-]","Thrust coefficient [-]",labels)
+    plot_multiple(xaxis,yaxis_P,"Advance ratio [-]","Power coefficient [-]",labels)
+    plot_multiple(xaxis,yaxis_eta,"Advance ratio [-]","Propulsive efficiency [-]",labels)
+    
+    plt.show()
     
     
+# %%

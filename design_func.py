@@ -123,6 +123,20 @@ def I_prime_J_prime(xi, G, phi, epsilon, lambd):
     return I1_prime, I2_prime, J1_prime, J2_prime
 
 def partial_lift_drag(AoA, Re, chord, rho, w, dr):
+    """
+    The lift and drag values at a given blade section
+
+    Inputs:
+        AoA     : Angle of attack [rad]
+        Re      : Reynolds number at the section [-]
+        chord   : chord length of section [m]
+        rho     : density of air [kg/m³]
+        w       : local velocity [m/s]
+        dr      : blade section length [m]
+
+    Outputs:
+        dL, dD
+    """
     
     cl, cd = clarkypolarsRe(AoA, Re)
     dL = cl * chord * rho * w**2 * dr / 2
