@@ -1,4 +1,4 @@
-#%%
+#%% imports & definitions
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -198,6 +198,63 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init , max_iter=10
         
     return dT, dC, dP
 
+def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J):
+    """
+    Function to find the thrust and power coefficient
+    as well as the propulsive efficiency wrt. the advance ratio
+
+    Inputs:
+        xi_       : nondimensional blade section radii [-]
+        beta_     : twist angle of the blade [rad]
+        B         : number of blades [-]
+        R         : tip radius [m]
+        nu        : kinematic viscosity [m^2/s]
+        c_        : chord length [m]
+        J         : given advance ratio [-]
+
+    Outputs:
+        zeta, cl_, epsilon_, alpha_, Wc_, a_, a_prime_, W_, c_, beta_,
+        I1, I2, J1, J2, Pc, eta, sigma
+    """
+    
+    n = Omega/(2*np.pi)
+    D = 2*R
+    
+    CT_ = np.zeros(len(J))
+    CP_ = np.zeros(len(J))
+    eta_ = np.zeros(len(J))
+    
+    for i in range(len(J)):
+        V_inf = J[i]*n*2*R
+        dT, dC, dP    = bemt(xi_,beta_,B,V_inf,Omega,R,nu,c_,V_inf,0)
+        
+        
+        T = np.trapezoid(dT)
+        P = np.trapezoid(dP)
+        
+        CT = 4*T/(D**4 * rho * n**2)
+        CP = 4*P/(rho * n**3 * D**5)
+        
+        CT_[i] = CT
+        CP_[i] = CP
+        eta_[i] = T*V_inf/P
+        
+    idx = np.argmin(eta_)
+    
+    eta_ = eta_[0:idx]
+    cond = eta_ > 0
+    
+    #Only take the "useful" values
+    eta_ = eta_[cond]
+    J_ = J[0:idx]
+    J_ = J_[cond]
+    CT_ = CT_[0:idx]
+    CT_ = CT_[cond]
+    CP_ = CP_[0:idx]
+    CP_ = CP_[cond]
+    
+    return J_, CT_, CP_, eta_
+
 def plot_results(xi_, y, ylabel):
     
     plt.figure(figsize=(10, 6))
@@ -238,7 +295,7 @@ def plot_multiple(x_, y_, xlabel, ylabel,labels):
     plt.tick_params(axis='both', which='major', labelsize=15)
     plt.legend()
     plt.grid()
-#%%
+#%% Part 1 (Wing parameters)
 if __name__ == "__main__":
     
 # ===========================================
@@ -256,16 +313,16 @@ if __name__ == "__main__":
     plot_results(xi_,alpha_*180/np.pi,'Angle of attack [deg]')
 
     plt.show()
-#%%    
+#%% Part 2 (BEMT)
 # ===========================================
 # ================ Part 2 ===================
 # ===========================================
 
     dT_0, dC_0, dP_0 = bemt(xi_,beta_,B,V,Omega,R,nu,c_,V,0)
-        
-    #dP_0 = dC_0*Omega
-    T_0 = np.trapezoid(dT_0)
+
+    T_0 = np.trapezoid(dT_0) #No other arguments given as seen in the syllabus
     P_0 = np.trapezoid(dP_0)
+    
     eta_P_0 = T_0*V/P_0
     
     eta_P_0_ = (dT_0[abs(dP_0) >= 0.0001]*V/dP_0[abs(dP_0) >= 0.0001])
@@ -283,7 +340,7 @@ if __name__ == "__main__":
     # Pitch angle +10°
     
     dT_10, dC_10, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V,Omega,R,nu,c_,V,0)
-    #dP_10 = dC_10*Omega
+    
     T_10 = np.trapezoid(dT_10)
     P_10 = np.trapezoid(dP_10)
     eta_P_10 = T_10*V/P_10
@@ -307,122 +364,20 @@ if __name__ == "__main__":
     compare_results(xi_[0:N-1],[eta_P_0_,eta_P_10_],"Efficiency [-]",["Base","Collective pitch of 10°"])
     
     plt.show()
-#%%
+#%% Part 3 (Collective pitch effect)
 # ===========================================
 # ================ Part 3 ===================
 # ===========================================
-
-    D = 2*R
     
     J = np.linspace(5e-3,5,1000)
     
-    CT_0_ = np.zeros(len(J))
-    CT_10_ = np.zeros(len(J))
-    CT_20_ = np.zeros(len(J))
-    CT_30_ = np.zeros(len(J))
-    
-    CP_0_ = np.zeros(len(J))
-    CP_10_ = np.zeros(len(J))
-    CP_20_ = np.zeros(len(J))
-    CP_30_ = np.zeros(len(J))
-    
-    eta_P_0_ = np.zeros(len(J))
-    eta_P_10_ = np.zeros(len(J))
-    eta_P_20_ = np.zeros(len(J))
-    eta_P_30_ = np.zeros(len(J))
-    
-
-    for i in range(len(J)):
-        V_inf = J[i]*n*D
-        
-        dT_0, dC_0, dP_0    = bemt(xi_,beta_                    ,B,V_inf,Omega,R,nu,c_,V_inf,0)
-        dT_10, dC_10, dP_10 = bemt(xi_,beta_ + 10 / 180 * np.pi ,B,V_inf,Omega,R,nu,c_,V_inf,0)
-        dT_20, dC_20, dP_20 = bemt(xi_,beta_ + 20 / 180 * np.pi ,B,V_inf,Omega,R,nu,c_,V_inf,0)
-        dT_30, dC_30, dP_30 = bemt(xi_,beta_ + 30 / 180 * np.pi ,B,V_inf,Omega,R,nu,c_,V_inf,0)
-        
-        T_0 = np.trapezoid(dT_0)
-        P_0 = np.trapezoid(dP_0)
-        CT_0 = 4*T_0/(D**4 * rho * n**2)
-        CP_0 = 4*P_0/(rho * n**3 * D**5)
-        CT_0_[i] = CT_0
-        CP_0_[i] = CP_0
-        eta_P_0_[i] = T_0 * V_inf / P_0
-        
-        T_10 = np.trapezoid(dT_10)
-        P_10 = np.trapezoid(dP_10)
-        CT_10 = 4*T_10/(D**4 * rho * n**2)
-        CP_10 = 4*P_10/(rho * n**3 * D**5)
-        CT_10_[i] = CT_10
-        CP_10_[i] = CP_10
-        eta_P_10_[i] = T_10 * V_inf / P_10
-        
-        T_20 = np.trapezoid(dT_20)
-        P_20 = np.trapezoid(dP_20)
-        CT_20 = 4*T_20/(D**4 * rho * n**2)
-        CP_20 = 4*P_20/(rho * n**3 * D**5)
-        CT_20_[i] = CT_20
-        CP_20_[i] = CP_20
-        eta_P_20_[i] = T_20 * V_inf / P_20
-        
-        T_30 = np.trapezoid(dT_30)
-        P_30 = np.trapezoid(dP_30)
-        CT_30 = 4*T_30/(D**4 * rho * n**2)
-        CP_30 = 4*P_30/(rho * n**3 * D**5)
-        CT_30_[i] = CT_30
-        CP_30_[i] = CP_30
-        eta_P_30_[i] = T_30 * V_inf / P_30
-    
-    idx_0 = np.argmin(eta_P_0_)
-    idx_10 = np.argmin(eta_P_10_)
-    idx_20 = np.argmin(eta_P_20_)
-    idx_30 = np.argmin(eta_P_30_)
-    
-    eta_P_0_ = eta_P_0_[0:idx_0]
-    cond_0 = eta_P_0_ > 0
-    eta_P_0_ = eta_P_0_[cond_0]
-    
-    eta_P_10_ = eta_P_10_[0:idx_10]
-    cond_10 = eta_P_10_ > 0
-    eta_P_10_ = eta_P_10_[cond_10]
-    
-    eta_P_20_ = eta_P_20_[0:idx_20]
-    cond_20 = eta_P_20_ > 0
-    eta_P_20_ = eta_P_20_[cond_20]
-    
-    eta_P_30_ = eta_P_30_[0:idx_30]
-    cond_30 = eta_P_30_ > 0
-    eta_P_30_ = eta_P_30_[cond_30]
-    
-    J_0 =   J[0:idx_0]
-    J_0 =   J_0[cond_0]
-    J_10 =  J[0:idx_10]
-    J_10 =  J_10[cond_10]
-    J_20 =  J[0:idx_20]
-    J_20 =  J_20[cond_20]
-    J_30 =  J[0:idx_30]
-    J_30 =  J_30[cond_30]
-    
-    CT_0_ = CT_0_[0:idx_0]
-    CT_0_ = CT_0_[cond_0]
-    CT_10_ = CT_10_[0:idx_10]
-    CT_10_ = CT_10_[cond_10]
-    CT_20_ = CT_20_[0:idx_20]
-    CT_20_ = CT_20_[cond_20]
-    CT_30_ = CT_30_[0:idx_30]
-    CT_30_ = CT_30_[cond_30]
-    
-    CP_0_ = CP_0_[0:idx_0]
-    CP_0_ = CP_0_[cond_0]
-    CP_10_ = CP_10_[0:idx_10]
-    CP_10_ = CP_10_[cond_10]
-    CP_20_ = CP_20_[0:idx_20]
-    CP_20_ = CP_20_[cond_20]
-    CP_30_ = CP_30_[0:idx_30]
-    CP_30_ = CP_30_[cond_30]
+    J_0, CT_0_, CP_0_, eta_P_0_      = coefs_wrt_adv_ratio(xi_,beta_                     ,B,Omega,R,nu,c_,J)
+    J_10, CT_10_, CP_10_, eta_P_10_  = coefs_wrt_adv_ratio(xi_,beta_ + 10 * np.pi / 180  ,B,Omega,R,nu,c_,J)
+    J_20, CT_20_, CP_20_, eta_P_20_  = coefs_wrt_adv_ratio(xi_,beta_ + 20 * np.pi / 180  ,B,Omega,R,nu,c_,J)
+    J_30, CT_30_, CP_30_, eta_P_30_  = coefs_wrt_adv_ratio(xi_,beta_ + 30 * np.pi / 180  ,B,Omega,R,nu,c_,J)
     
     xaxis = [J_0,J_10,J_20,J_30]
 
-    #xaxis = [J,J,J,J]
     yaxis_T = [CT_0_,CT_10_,CT_20_,CT_30_]
     yaxis_P = [CP_0_,CP_10_,CP_20_,CP_30_]
     yaxis_eta = [eta_P_0_,eta_P_10_,eta_P_20_,eta_P_30_]
@@ -435,4 +390,6 @@ if __name__ == "__main__":
     plt.show()
     
     
-# %%
+#%% Part 4 (Cruise condition)
+
+    V = 90 #[m/s]
