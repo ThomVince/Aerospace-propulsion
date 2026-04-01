@@ -225,7 +225,8 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J):
     eta_ = np.zeros(len(J))
     
     for i in range(len(J)):
-        V_inf = J[i]*n*2*R
+        
+        V_inf = J[i]*n*D
         dT, dC, dP    = bemt(xi_,beta_,B,V_inf,Omega,R,nu,c_,V_inf,0)
         
         
