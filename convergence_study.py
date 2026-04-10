@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from design import design_loop, xi0,lambd,Tc,B,V,R,nu
 
-N_ = [100,150,200,300,400]
+N_ = [50,100,150,200,300,400]
 error_lim = 1e-4
 zetas = np.zeros(len(N_))
 errs = np.zeros(len(N_)-1)
