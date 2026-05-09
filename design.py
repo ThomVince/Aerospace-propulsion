@@ -191,8 +191,8 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init , max_iter=10
         v_a3 = V + dT/dm_dot
         v_u2p = dC/(dm_dot*xi_*R)
         
-        diff_iter_1 = max(v_a3 - v_a3_old)
-        diff_iter_2 = max(v_u2p - v_u2p_old)
+        diff_iter_1 = max(abs(v_a3 - v_a3_old))
+        diff_iter_2 = max(abs(v_u2p - v_u2p_old))
         
     dP = dC*Omega
         
@@ -227,7 +227,7 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J):
     for i in range(len(J)):
         
         V_inf = J[i]*n*D
-        dT, dC, dP    = bemt(xi_,beta_,B,V_inf,Omega,R,nu,c_,V_inf,0)
+        dT, dC, dP    = bemt(xi_,beta_,B,V_inf,Omega,R,nu,c_,V_inf,0,max_iter=1000)
         
         
         T = np.trapezoid(dT)
@@ -245,7 +245,7 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J):
     eta_ = eta_[0:idx]
     cond = eta_ > 0
     
-    #Only take the "useful" values
+    #Only take the "useful" ( > 0) values
     eta_ = eta_[cond]
     J_ = J[0:idx]
     J_ = J_[cond]
@@ -370,7 +370,7 @@ if __name__ == "__main__":
 # ================ Part 3 ===================
 # ===========================================
     
-    J = np.linspace(5e-3,5,1000)
+    J = np.linspace(5e-2,5,1000)
     
     J_0, CT_0_, CP_0_, eta_P_0_      = coefs_wrt_adv_ratio(xi_,beta_                     ,B,Omega,R,nu,c_,J)
     J_10, CT_10_, CP_10_, eta_P_10_  = coefs_wrt_adv_ratio(xi_,beta_ + 10 * np.pi / 180  ,B,Omega,R,nu,c_,J)
