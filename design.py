@@ -12,7 +12,9 @@ from design_func import *
 
 B = 3           # number of blades
 R = 1.7/2       # propeller tip radius [m]
-xi0 = 0.3/(2*R) # nondimensional hub radius [-]
+D = 2*R         # propeller diameter [m]
+D_hub = 0.3     # hub diameter [m]
+xi0 = D_hub / D # nondimensional hub radius [-]
 
 T = 500     # required thrust [N]
 V = 45      # freestream takeoff velocity [m/s]
@@ -392,5 +394,95 @@ if __name__ == "__main__":
     
     
 #%% Part 4 (Cruise condition)
+# ===========================================
+# ================ Part 4 ===================
+# ===========================================
 
-    V = 90 #[m/s]
+V_cruise = 90  # cruise velocity [m/s]
+
+# Advance ratio in cruise
+J_cruise = V_cruise / (n * D)
+
+print("\nPart 4:")
+print(f"Cruise velocity: {V_cruise:.2f} m/s")
+print(f"Cruise advance ratio J: {J_cruise:.4f}")
+
+pitch_angles_deg = np.linspace(0, 45, 91)
+
+T_cruise = np.zeros_like(pitch_angles_deg)
+P_cruise = np.zeros_like(pitch_angles_deg)
+eta_cruise = np.zeros_like(pitch_angles_deg)
+
+for i, pitch_deg in enumerate(pitch_angles_deg):
+    pitch_rad = pitch_deg * np.pi / 180
+
+    beta_cruise = beta_ + pitch_rad
+
+    dT_cruise, dC_cruise, dP_cruise = bemt(xi_, beta_cruise, B, V_cruise, Omega, R, nu, c_, V_cruise, 0)
+
+    T = np.trapezoid(dT_cruise)
+    P = np.trapezoid(dP_cruise)
+
+    T_cruise[i] = T
+    P_cruise[i] = P
+
+    if P > 0:
+        eta_cruise[i] = T * V_cruise / P
+    else:
+        eta_cruise[i] = np.nan
+
+# To remove impossible and non-physical efficiencies
+valid = np.isfinite(eta_cruise) & (eta_cruise > 0) & (eta_cruise < 1.5)
+
+pitch_angles_valid = pitch_angles_deg[valid]
+T_valid = T_cruise[valid]
+P_valid = P_cruise[valid]
+eta_valid = eta_cruise[valid]
+
+# Best collective pitch
+idx_best = np.argmax(eta_valid)
+
+best_pitch = pitch_angles_valid[idx_best]
+best_T = T_valid[idx_best]
+best_P = P_valid[idx_best]
+best_eta = eta_valid[idx_best]
+
+# PRINTS
+print("\nBest cruise strategy:")
+print(f"Best collective pitch: {best_pitch:.2f} deg")
+print(f"Thrust at best pitch: {best_T:.4f} N")
+print(f"Power at best pitch: {best_P:.4f} W")
+print(f"Maximum propulsive efficiency: {best_eta:.4f}")
+
+# PLOTS
+# Efficiency versus collective pitch
+plt.figure(figsize=(10, 6))
+plt.plot(pitch_angles_valid, eta_valid)
+plt.axvline(best_pitch, linestyle="--", label=f"Best pitch = {best_pitch:.2f}°")
+plt.xlabel(r"Collective pitch angle [deg]", fontsize=15)
+plt.ylabel(r"Propulsive efficiency $\eta$ [-]", fontsize=15)
+plt.tick_params(axis="both", which="major", labelsize=15)
+plt.grid()
+plt.legend()
+
+# Thrust versus collective pitch
+plt.figure(figsize=(10, 6))
+plt.plot(pitch_angles_valid, T_valid)
+plt.axvline(best_pitch, linestyle="--", label=f"Best pitch = {best_pitch:.2f}°")
+plt.xlabel(r"Collective pitch angle [deg]", fontsize=15)
+plt.ylabel("Thrust [N]", fontsize=15)
+plt.tick_params(axis="both", which="major", labelsize=15)
+plt.grid()
+plt.legend()
+
+# Power versus collective pitch
+plt.figure(figsize=(10, 6))
+plt.plot(pitch_angles_valid, P_valid)
+plt.axvline(best_pitch, linestyle="--", label=f"Best pitch = {best_pitch:.2f}°")
+plt.xlabel("Collective pitch angle [deg]", fontsize=15)
+plt.ylabel("Power [W]", fontsize=15)
+plt.tick_params(axis="both", which="major", labelsize=15)
+plt.grid()
+plt.legend()
+
+plt.show()
