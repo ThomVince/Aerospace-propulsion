@@ -69,6 +69,7 @@ if __name__ == "__main__":
     
     eta_P_0 = T_0*V/P_0
     
+    #Only positive power values taken here to avoid dividing by 0
     eta_P_0_ = (dT_0[abs(dP_0) >= 0.0001]*V/dP_0[abs(dP_0) >= 0.0001])
         
     plot_results(xi_,dT_0,"Thrust distribution [N]")
@@ -84,6 +85,7 @@ if __name__ == "__main__":
     P_10 = np.trapezoid(dP_10)
     eta_P_10 = T_10*V/P_10
     
+    #Only positive power values taken here to avoid dividing by 0
     eta_P_10_ = (dT_10[abs(dP_10) >= 0.0001]*V/dP_10[abs(dP_10) >= 0.0001])
         
     plot_results(xi_,dT_10,"Thrust distribution [N]")
@@ -115,12 +117,14 @@ if __name__ == "__main__":
 # ================ Part 3 ===================
 # ===========================================
     
+    #Array starts at 0.05 to avoind convergence problems related to convergence of the BEMT algorithm with small J
     J = np.linspace(5e-2,5,1000)
     
-    J_0, CT_0_, CP_0_, eta_P_0_      = coefs_wrt_adv_ratio(xi_,beta_                   , B, Omega, R, nu, c_, J, rho)
-    J_10, CT_10_, CP_10_, eta_P_10_  = coefs_wrt_adv_ratio(xi_,beta_ + 10 * np.pi / 180, B, Omega, R, nu, c_, J, rho)
-    J_20, CT_20_, CP_20_, eta_P_20_  = coefs_wrt_adv_ratio(xi_,beta_ + 20 * np.pi / 180, B, Omega, R, nu, c_, J, rho)
-    J_30, CT_30_, CP_30_, eta_P_30_  = coefs_wrt_adv_ratio(xi_,beta_ + 30 * np.pi / 180, B, Omega, R, nu, c_, J, rho)
+    
+    J_0, CT_0_, CP_0_, eta_P_0_      = coefs_wrt_adv_ratio(xi_,beta_                   , B, Omega, R, nu, c_, J, rho)# +0°
+    J_10, CT_10_, CP_10_, eta_P_10_  = coefs_wrt_adv_ratio(xi_,beta_ + 10 * np.pi / 180, B, Omega, R, nu, c_, J, rho)# +10°
+    J_20, CT_20_, CP_20_, eta_P_20_  = coefs_wrt_adv_ratio(xi_,beta_ + 20 * np.pi / 180, B, Omega, R, nu, c_, J, rho)# +20°
+    J_30, CT_30_, CP_30_, eta_P_30_  = coefs_wrt_adv_ratio(xi_,beta_ + 30 * np.pi / 180, B, Omega, R, nu, c_, J, rho)# +30°
     
     xaxis = [J_0,J_10,J_20,J_30]
 
@@ -129,6 +133,7 @@ if __name__ == "__main__":
     yaxis_eta = [eta_P_0_,eta_P_10_,eta_P_20_,eta_P_30_]
     labels = ["Pitch = 0°","Pitch = 10°","Pitch = 20°","Pitch = 30°"]
     
+    #Create the plots just like in the course
     plot_multiple(xaxis,yaxis_T,"Advance ratio [-]","Thrust coefficient [-]",labels)
     plot_multiple(xaxis,yaxis_P,"Advance ratio [-]","Power coefficient [-]",labels)
     plot_multiple(xaxis,yaxis_eta,"Advance ratio [-]","Propulsive efficiency [-]",labels)

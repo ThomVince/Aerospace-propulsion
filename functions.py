@@ -247,7 +247,8 @@ def partial_lift_drag(AoA, Re, chord, rho, w, dr):
 
     Returns
     -------
-        dL, dD
+        dL      : Lift [N]
+        dD      : Drag [N]
     """
     
     cl, cd = clarkypolarsRe(AoA, Re)
@@ -274,14 +275,17 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init, rho, max_ite
 
     Returns
     -------
-        dT         : Thrust distribution along the blade
-        dC         : Torque distribution along the blade
-        dP         : Power required to move the motor
+        dT         : Thrust distribution along the blade [N]
+        dC         : Torque distribution along the blade [N.m]
+        dP         : Power required to move the motor [W]
     """
+    
     N = len(beta_)
+    dr = R*(1-xi_[0])/N
+    
+    #Initiate variables
     v_a3 = v_a3_init
     v_u2p = v_u2p_init
-    dr = R*(1-xi_[0])/N
     
     dT = np.zeros_like(xi_)
     dC = np.zeros_like(xi_)
@@ -291,12 +295,13 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init, rho, max_ite
     
     iter_nb = 0
     
-    while diff_iter_1 > 0.001 or diff_iter_2 > 0.001:
+    while diff_iter_1 > 0.001 or diff_iter_2 > 0.001:   #Stop when both velocities are within 1 mm/s
         
         iter_nb += 1
         if iter_nb == max_iter:
             raise RuntimeError(f"Design loop did not converge after {max_iter} iterations.")
         
+        #Compute velocity components
         v_a2 = (V + v_a3)/2
         w_a2 = v_a2
         v_u2 = v_u2p/2
@@ -307,11 +312,13 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init, rho, max_ite
         w_2 = (w_a2**2 + w_u2**2)**(1/2)
         phi_2 = np.arctan2(w_u2,w_a2)
         
+        #Compute lift and drag
         aoa = beta_ - (np.pi/2 + phi_2)
         Re = rho * w_2 * c_ / nu
         
         dL, dD = partial_lift_drag(aoa,Re,c_,rho,w_2,dr)
         
+        #Compute directly the cos and sin to avoid time taken up by np.sin() and np.cos()
         cos_phi = w_a2/w_2
         sin_phi = w_u2/w_2
         
@@ -321,6 +328,7 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init, rho, max_ite
         v_a3_old = v_a3
         v_u2p_old = v_u2p
         
+        #Recompute estimates
         v_a3 = V + dT/dm_dot
         v_u2p = dC/(dm_dot*xi_*R)
         
@@ -365,7 +373,7 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J, rho):
     for i in range(len(J)):
         
         V_inf = J[i]*n*D
-        dT, dC, dP    = bemt(xi_, beta_, B, V_inf, Omega, R, nu, c_, V_inf, 0, rho, max_iter=1000)
+        dT, dC, dP    = bemt(xi_, beta_, B, V_inf, Omega, R, nu, c_, V_inf, 0, rho, max_iter=1000) #max_iter increased to 1000 to ensure convergence with small J
         
         
         T = np.trapezoid(dT)
@@ -399,6 +407,9 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J, rho):
 # ===========================================
 
 def plot_results(xi_, y, ylabel, pdf=None):
+    """
+        Plots the given array
+    """
     
     plt.figure(figsize=(10, 6))
     plt.plot(xi_, y, lw=2.2)
@@ -412,6 +423,9 @@ def plot_results(xi_, y, ylabel, pdf=None):
         plt.savefig(pdf + ".pdf", format='pdf', dpi=300, bbox_inches='tight')
     
 def compare_results(xi_,y_,ylabel , labels,xlabel=r'Non-dimensional blade section radius $\xi$ [-]', pdf=None):
+    """
+        Compares the given arrays
+    """
     
     plt.figure(figsize=(10, 6))
     
@@ -432,6 +446,9 @@ def compare_results(xi_,y_,ylabel , labels,xlabel=r'Non-dimensional blade sectio
         plt.savefig(pdf + ".pdf", format='pdf', dpi=300, bbox_inches='tight')
     
 def plot_multiple(x_, y_, xlabel, ylabel,labels, pdf=None):
+    """
+        Makes multiple plots
+    """
     
     plt.figure(figsize=(10, 6))
     
@@ -452,6 +469,9 @@ def plot_multiple(x_, y_, xlabel, ylabel,labels, pdf=None):
         plt.savefig(pdf + ".pdf", format='pdf', dpi=300, bbox_inches='tight')
 
 def plot_part4(x_, y_, xlabel, ylabel, best_pitch, pdf=None):
+    """
+        Makes the plots for part 4
+    """
     plt.figure(figsize=(10, 6))
     plt.plot(x_, y_, lw=2.2, zorder=10)
     plt.axvline(best_pitch, color='k', linestyle="--", label=f"Best pitch = {best_pitch:.1f}°")
