@@ -31,6 +31,12 @@ Omega = 2*np.pi*n               # propeller angular velocity [rad/s]
 lambd = V/(Omega*R)             # speed ratio [-]
 Tc = 2*T/(rho*V**2*np.pi*R**2)  # thrust coefficient [-]
 
+# Prints
+print("=== DERIVED PARAMETERS ===")
+print(f"Propeller angular velocity Omega : {Omega:.2f} [rad/s]")
+print(f"Speed ratio lambda : {lambd:.4f} [-]")
+print(f"Thrust coefficient Tc : {Tc:.4f} [-]")
+
 #%% Part 1 (Design procedure)
 if __name__ == "__main__":
     
@@ -50,7 +56,7 @@ if __name__ == "__main__":
     plt.show()
 
     # Prints
-    print("=== STEP 1 ===")
+    print("\n=== STEP 1 ===")
     print(f"Displacement velocity ratio zeta : {zeta:.4f}")
     print(f"Propulsive efficiency eta : {eta*100:.2f}%")
     print(f"Chord distribution from hub to tip: {c_[0]*100:.2f} --> {c_[-1]*100:.2f} cm")
