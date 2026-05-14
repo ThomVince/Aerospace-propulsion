@@ -11,13 +11,15 @@ def F_phi(xi, zeta, lambd, B):
     """
     Prandtl's momentum loss factor F and flow angle phi for a given blade section
 
-    Inputs:
+    Parameters
+    ----------
         xi    : nondimensional blade section radii [-]
         zeta  : displacement velocity ratio [-]
         lambd : speed ratio [-]
         B     : number of blades [-]
 
-    Outputs:
+    Returns
+    -------
         F   : Prandtl loss factor at each section [-]
         phi : flow angle at each section [rad]
     """
@@ -31,7 +33,8 @@ def Wc_Re(lambd, cl_fixed, G, V, R, zeta, B, nu):
     """
     Relative velocity times chord (Wc) and chord Reynolds number for a blade section.
 
-    Inputs:
+    Parameters
+    ----------
         lambd   : speed ratio [-]
         cl_fixed: lift coefficient (current estimate) [-]
         G       : circulation function at the section [-]
@@ -41,7 +44,8 @@ def Wc_Re(lambd, cl_fixed, G, V, R, zeta, B, nu):
         B       : number of blades [-]
         nu      : kinematic viscosity [m^2/s]
 
-    Outputs:
+    Returns
+    -------
         Wc : local total velocity times the chord [m²/s]
         Re : chord Reynolds number [-]
     """
@@ -56,25 +60,27 @@ def epsilon_alpha(Re):
     Input:
         Re : chord Reynolds number [-]
 
-    Outputs:
+    Returns
+    -------
         epsilon : minimum drag-to-lift ratio [-]
         alpha   : corresponding angle of attack [rad]
         cl_opt  : corresponding lift coefficient [-]
     """
+    # Computation of first approximate optimum to the nearest 1° 
     aoa_ = np.linspace(-np.pi/2 , np.pi/2, 180)
     cl_, cd_ = clarkypolarsRe(aoa_,Re)
     
     inv_epsilon_ = cl_ / cd_
     
-    idx = np.argmax(inv_epsilon_)
+    idx = np.argmax(inv_epsilon_) # Optimum = maximum lift-to-drag ratio
     
+    # Refined approximate of optimum 
     aoa_ = np.linspace(aoa_[idx]-np.pi/180,aoa_[idx]+np.pi/180,120)
-    
     cl_, cd_ = clarkypolarsRe(aoa_,Re)
     
     inv_epsilon_ = cl_ / cd_
     
-    idx = np.argmax(inv_epsilon_)
+    idx = np.argmax(inv_epsilon_) # Optimum = maximum lift-to-drag ratio
     
     epsilon = 1/inv_epsilon_[idx]
     alpha = aoa_[idx]
@@ -86,14 +92,16 @@ def a_a_prime_W(zeta, phi, epsilon, x, V):
     """
     Axial interference factor a, rotational interference factor a_prime, and local total velocity W
 
-    Inputs:
+    Parameters
+    ----------
         zeta    : displacement velocity ratio [-]
         phi     : flow angle [rad]
         epsilon : drag-to-lift ratio [-]
         x       : nondimesional distance (Omega*r/V) [-]
         V       : freestream velocity [m/s]
 
-    Outputs:
+    Returns
+    -------
         a       : axial interference factor [-]
         a_prime : rotational interference factor [-]
         W       : local total velocity [m/s]
@@ -107,14 +115,16 @@ def I_prime_J_prime(xi, G, phi, epsilon, lambd):
     """
     The four derivatives I1', I2', J1', J2' for thrust and power coefficient integration
 
-    Inputs:
+    Parameters
+    ----------
         xi      : nondimensional blade section radius [-]
         G       : circulation function at the section [-]
         phi     : flow angle [rad]
         epsilon : drag-to-lift ratio [-]
         lambd   : speed ratio [-]
 
-    Outputs:
+    Returns
+    -------
         I1_prime, I2_prime, J1_prime, J2_prime : the four derivatives
     """
     I1_prime = 4 * xi * G * (1 - epsilon*np.tan(phi))
@@ -126,9 +136,10 @@ def I_prime_J_prime(xi, G, phi, epsilon, lambd):
 
 def design_loop(xi_, xi0, zeta_init, lambd, Tc, B, V, R, nu, Omega, max_iter=100):
     """
-    Iterative design loop to find the optimal displacement velocity ratio zeta.
+    Iterative design loop to find the optimal displacement velocity ratio zeta
 
-    Inputs:
+    Parameters
+    ----------
         xi_       : nondimensional blade section radii [-]
         xi0       : nondimensional hub radius [-]
         zeta_init : initial guess for the displacement velocity ratio [-]
@@ -141,7 +152,8 @@ def design_loop(xi_, xi0, zeta_init, lambd, Tc, B, V, R, nu, Omega, max_iter=100
         Omega     : propeller angular velocity [rad/s]
         max_iter  : maximum number of iterations [-]
 
-    Outputs:
+    Returns
+    -------
         zeta, cl_, epsilon_, alpha_, Wc_, a_, a_prime_, W_, c_, beta_,
         I1, I2, J1, J2, Pc, eta, sigma
     """
@@ -169,17 +181,17 @@ def design_loop(xi_, xi0, zeta_init, lambd, Tc, B, V, R, nu, Omega, max_iter=100
     J2_prime = np.zeros(N)
 
     for i in range(max_iter):
-        F_, phi_ = F_phi(xi_, zeta, lambd, B)
-        x = Omega * xi_ * R / V
-        G_ = F_ * x * np.cos(phi_) * np.sin(phi_)
+        F_, phi_ = F_phi(xi_, zeta, lambd, B)       # Prandtl momentum loss factor and flow angle
+        x = Omega * xi_ * R / V                     # nondimesional distance (Omega*r/V) [-]
+        G_ = F_ * x * np.cos(phi_) * np.sin(phi_)   # circulation function
 
         for i in range(N):
-            cl = cl_guess
+            cl = cl_guess # same initial guess for each blade section for the inner iterative process
             for j in range(20):
-                Wc, Re = Wc_Re(lambd, cl, G_[i], V, R, zeta, B, nu)
-                epsilon, alpha, cl_opt = epsilon_alpha(Re)
+                Wc, Re = Wc_Re(lambd, cl, G_[i], V, R, zeta, B, nu) # Wc product and Reynolds number computation
+                epsilon, alpha, cl_opt = epsilon_alpha(Re)          # Optimal operation point computation for each blade
 
-                if abs((cl_opt - cl)/cl) < 1e-3:
+                if abs((cl_opt - cl)/cl) < 1e-3: # check convergence
                     break
                 
                 cl = cl_opt
@@ -191,28 +203,28 @@ def design_loop(xi_, xi0, zeta_init, lambd, Tc, B, V, R, nu, Omega, max_iter=100
             alpha_[i]   = alpha
             Wc_[i]      = Wc
 
-        for i in range(N):
+        for i in range(N): # for each blade section
             a_[i], a_prime_[i], W_[i] = a_a_prime_W(zeta, phi_[i], epsilon_[i], x[i], V)
-            c_[i] = Wc_[i] / W_[i]
-            beta_[i] =  alpha_[i] + phi_[i]
+            c_[i] = Wc_[i] / W_[i]          # chord computation
+            beta_[i] =  alpha_[i] + phi_[i] # pitch angle computation
 
             I1_prime[i], I2_prime[i], J1_prime[i], J2_prime[i] = I_prime_J_prime(xi_[i], G_[i], phi_[i], epsilon_[i], lambd)
 
         I1 = float(np.trapezoid(I1_prime, xi_))
         I2 = float(np.trapezoid(I2_prime, xi_))
 
-        zeta_new = (I1/(2*I2)) - ((I1/(2*I2))**2 - Tc/I2)**0.5
+        zeta_new = (I1/(2*I2)) - ((I1/(2*I2))**2 - Tc/I2)**0.5 # new value for zeta
 
-        if abs(zeta_new - zeta) < 1e-3:
+        if abs(zeta_new - zeta) < 1e-3: # check convergence
             J1 = float(np.trapezoid(J1_prime, xi_))
             J2 = float(np.trapezoid(J2_prime, xi_))
-            Pc = J1*zeta_new + J2*zeta_new**2
-            eta = Tc / Pc
-            sigma = (B*c_)/(2*np.pi*xi_*R)
+            Pc = J1*zeta_new + J2*zeta_new**2 # power coefficient
+            eta = Tc / Pc # propulsive efficiency
+            sigma = (B*c_)/(2*np.pi*xi_*R) # solidity (not used)
             
             return zeta_new, cl_, epsilon_, alpha_, Wc_, a_, a_prime_, W_, c_, beta_, I1, I2, J1, J2, Pc, eta, sigma
         
-        zeta = zeta_new
+        zeta = zeta_new # zeta value update
         
     raise RuntimeError(f"Design loop did not converge after {max_iter} iterations.")
 
@@ -224,7 +236,8 @@ def partial_lift_drag(AoA, Re, chord, rho, w, dr):
     """
     The lift and drag values at a given blade section
 
-    Inputs:
+    Parameters
+    ----------
         AoA     : Angle of attack [rad]
         Re      : Reynolds number at the section [-]
         chord   : chord length of section [m]
@@ -232,7 +245,8 @@ def partial_lift_drag(AoA, Re, chord, rho, w, dr):
         w       : local velocity [m/s]
         dr      : blade section length [m]
 
-    Outputs:
+    Returns
+    -------
         dL, dD
     """
     
@@ -245,9 +259,10 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init, rho, max_ite
     """
     Iterative implementation of the BEMT algorithm to find the thrust and torque distribution.
 
-    Inputs:
+    Parameters
+    ----------
         xi_        : nondimensional blade section radii [-]
-        beta_      : twist angle of the wing section [rad]
+        beta_      : twist angle of the blade section [rad]
         B          : number of propeller blades [-]
         V          : freestream velocity [m/s]
         R          : tip radius [m]
@@ -257,9 +272,10 @@ def bemt(xi_, beta_, B, V, Omega, R, nu, c_, v_a3_init, v_u2p_init, rho, max_ite
         rho        : air density [kg/m^3]
         max_iter   : maximum number of iterations [-]
 
-    Outputs:
-        dT         : Thrust distribution on the wing
-        dC         : Torque distribution on the wing
+    Returns
+    -------
+        dT         : Thrust distribution along the blade
+        dC         : Torque distribution along the blade
         dP         : Power required to move the motor
     """
     N = len(beta_)
@@ -320,7 +336,8 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J, rho):
     Function to find the thrust and power coefficient
     as well as the propulsive efficiency wrt. the advance ratio
 
-    Inputs:
+    Parameters
+    ----------
         xi_       : nondimensional blade section radii [-]
         beta_     : twist angle of the blade [rad]
         B         : number of blades [-]
@@ -330,9 +347,12 @@ def coefs_wrt_adv_ratio(xi_,beta_,B,Omega,R,nu,c_,J, rho):
         J         : given advance ratio [-]
         rho        : air density [kg/m^3]
 
-    Outputs:
-        zeta, cl_, epsilon_, alpha_, Wc_, a_, a_prime_, W_, c_, beta_,
-        I1, I2, J1, J2, Pc, eta, sigma
+    Returns
+    -------
+        J_   : filtered advance ratio array [-]
+        CT_  : thrust coefficient array [-]
+        CP_  : power coefficient array [-]
+        eta_ : propulsive efficiency array [-]
     """
     
     n = Omega/(2*np.pi)

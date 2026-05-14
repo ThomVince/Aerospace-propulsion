@@ -38,15 +38,18 @@ if __name__ == "__main__":
 # ================ Part 1 ===================
 # ===========================================
     
+    # Design procedure
     xi_ = np.linspace(xi0, 1, N)
-    zeta_init = 0.0
+    zeta_init = 0.0 # intial guess for zeta
     zeta, cl_, epsilon_, alpha_, Wc_, a_, a_prime_, W_, c_, beta_, I1, I2, J1, J2, Pc, eta, sigma = design_loop(xi_, xi0, zeta_init, lambd, Tc, B, V, R, nu, Omega)
 
+    # Plots
     plot_results(xi_, c_*100, 'Chord [cm]')
     plot_results(xi_, beta_*180/np.pi, 'Pitch angle [deg]')
 
     plt.show()
 
+    # Prints
     print("=== STEP 1 ===")
     print(f"Displacement velocity ratio zeta : {zeta:.4f}")
     print(f"Propulsive efficiency eta : {eta*100:.2f}%")
@@ -159,16 +162,17 @@ if __name__ == "__main__":
     # Advance ratio in cruise
     J_cruise = V_cruise / (n * D)
 
-    pitch_angles_deg = np.linspace(0, 45, 451)
+    # Range of collective pitch angles considered ([0°, 45°] with steps of 0.1°)
+    pitch_angles_deg = np.linspace(0, 45, 451) # [deg]
 
-    T_cruise = np.zeros_like(pitch_angles_deg)
-    P_cruise = np.zeros_like(pitch_angles_deg)
-    eta_cruise = np.zeros_like(pitch_angles_deg)
+    T_cruise = np.zeros_like(pitch_angles_deg)   # Thrust
+    P_cruise = np.zeros_like(pitch_angles_deg)   # Power
+    eta_cruise = np.zeros_like(pitch_angles_deg) # Efficiency
 
     for i, pitch_deg in enumerate(pitch_angles_deg):
-        pitch_rad = pitch_deg * np.pi / 180
+        pitch_rad = pitch_deg * np.pi / 180 # [rad]
 
-        beta_cruise = beta_ + pitch_rad
+        beta_cruise = beta_ + pitch_rad # new pitch angle considered for the blade section
 
         dT_cruise, dC_cruise, dP_cruise = bemt(xi_, beta_cruise, B, V_cruise, Omega, R, nu, c_, V_cruise, 0, rho)
 
@@ -178,7 +182,7 @@ if __name__ == "__main__":
         T_cruise[i] = T
         P_cruise[i] = P
 
-        if P > 0:
+        if P > 0: # only retaining the physically meaningful results
             eta_cruise[i] = T * V_cruise / P
         else:
             eta_cruise[i] = np.nan
@@ -191,7 +195,7 @@ if __name__ == "__main__":
     P_valid = P_cruise[valid]
     eta_valid = eta_cruise[valid]
 
-    # Best collective pitch
+    # Best collective pitch for maximum efficiency
     idx_best = np.argmax(eta_valid)
 
     best_pitch = pitch_angles_valid[idx_best]
